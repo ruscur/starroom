@@ -5,3 +5,4 @@ authors = ["Russell Currey <ruscur@russell.cc>"]
 
 [dependencies]
 rand = "0.3"
+rustc-serialize = "0.3"
