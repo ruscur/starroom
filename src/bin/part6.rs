@@ -1,6 +1,6 @@
 // Part 6: Files, traits and serialisation
 
-// add functionality for ./starroom <json_file>
+// add functionality for ./starroom --file <json_file>
 
 // add rustc-serialise = "0.3" to Cargo.toml
 
@@ -11,29 +11,51 @@
 // - if any parsing fails, replace with a random value
 
 extern crate rand;
+extern crate docopt;
 extern crate rustc_serialize;
 
-use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 
 use rustc_serialize::json;
 
+use docopt::Docopt;
+
+const USAGE: &'static str = "
+The Star Room!
+
+Usage:
+    starroom [<length> <width> <stars>...]
+    starroom --file <json_file>
+
+Options:
+    -h --help             Show this screen.
+    --file <json_file>    JSON file with star data
+";
+
+#[derive(Debug, RustcDecodable)]
+struct Args {
+    arg_length: Option<u8>,
+    arg_width: Option<u8>,
+    arg_stars: Vec<u8>,
+    flag_file: Option<String>
+}
+
 #[derive(RustcDecodable)]
 struct Point {
-    x: u64,
-    y: u64
+    x: u8,
+    y: u8
 }
 
 #[derive(RustcDecodable)]
 struct Room {
-    length: u64,
-    width: u64,
+    length: u8,
+    width: u8,
     stars: Vec<Point>
 }
 
 impl Room {
-    fn new(length: u64, width: u64) -> Room {
+    fn new(length: u8, width: u8) -> Room {
         Room {
             length: length,
             width: width,
@@ -61,8 +83,8 @@ impl Room {
     // length-2, width-2, then push it out of wall range with +1
     fn add_random_star(&mut self) {
         let new_star = Point {
-            x: (rand::random::<u64>() % (self.length-2)) + 1,
-            y: (rand::random::<u64>() % (self.width-2)) + 1
+            x: (rand::random::<u8>() % (self.length-2)) + 1,
+            y: (rand::random::<u8>() % (self.width-2)) + 1
         };
 
         self.stars.push(new_star);
@@ -106,39 +128,39 @@ impl Room {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let args: Args = Docopt::new(USAGE)
+        .and_then(|d| d.decode())
+        .unwrap_or_else(|e| e.exit());
 
     println!("Welcome to the star room");
+    println!("Debug: {:?}", args);
 
-    // if we weren't given any arguments
-    if args.len()-1 == 0 {
-        let mut room = Room::new(20, 8);
-        room.add_random_star();
-        room.draw();
-    // if we were given appropriate arguments...for a json file
-    } else if args.len()-1 == 1 {
-        // we're expecting a filename, so check if it's a filesystem path
-        let mut file = File::open(&args[1]).unwrap();
+    if args.flag_file.is_some() {
+        let mut file = File::open(args.flag_file.unwrap()).unwrap();
         let mut string = String::new();
         file.read_to_string(&mut string).unwrap();
 
         let room: Room = json::decode(&string).unwrap();
         room.draw();
-    // if we were given appropriate arguments...for dimensions
-    } else if args.len()-1 >= 4 && (args.len()-1) % 2 == 0 {
-        let mut room = Room::new(args[1].parse::<u64>().unwrap(),
-                                 args[2].parse::<u64>().unwrap());
-        for i in 3..args.len() {
-            if i % 2 == 0 {
-                continue;
-            }
-            // TODO why can't I do other stuff with this unwrap
-            room.add_star(Point{x: args[i].parse::<u64>().unwrap(),
-                                y: args[i+1].parse::<u64>().unwrap()})
-                .unwrap();
-        }
-        room.draw();
-    } else {
-        println!("Invalid arguments, use no args or <l> <w> <starx> <stary>");
+        return;
     }
+
+    let mut room = Room::new(args.arg_length.unwrap_or(20),
+                             args.arg_width.unwrap_or(8));
+
+    if args.arg_stars.len() == 0 {
+        room.add_random_star();
+    } else if args.arg_stars.len() % 2 == 1 {
+        panic!("Must provide an even number of star coords!");
+    } else {
+        // Make sure we have an even number of values
+        let mut i = 0;
+        while i < args.arg_stars.len() {
+            room.add_star(Point{x: args.arg_stars[i],
+                                y: args.arg_stars[i+1]});
+            i += 2;
+        }
+    }
+
+    room.draw();
 }
