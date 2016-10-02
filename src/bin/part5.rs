@@ -1,10 +1,29 @@
 // Part 5: argument parsing and error handling
 
-// add functionality for ./starroom <length> <width> <star_x> <star_y>
+// add functionality for ./starroom <length> <width> (<star_x> <star_y> ...)
 
 extern crate rand;
+extern crate docopt;
+extern crate rustc_serialize;
 
-use std::env;
+use docopt::Docopt;
+
+const USAGE: &'static str = "
+The Star Room!
+
+Usage:
+    starroom [<length> <width> <stars>...]
+
+Options:
+    -h --help             Show this screen.
+";
+
+#[derive(Debug, RustcDecodable)]
+struct Args {
+    arg_length: Option<u8>,
+    arg_width: Option<u8>,
+    arg_stars: Vec<u8>
+}
 
 struct Point {
     x: u8,
@@ -91,29 +110,29 @@ impl Room {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let args: Args = Docopt::new(USAGE)
+        .and_then(|d| d.decode())
+        .unwrap_or_else(|e| e.exit());
 
     println!("Welcome to the star room");
+    println!("Debug: {:?}", args);
 
-    // if we weren't given any arguments
-    if args.len()-1 == 0 {
-        let mut room = Room::new(20, 8);
+    let mut room = Room::new(args.arg_length.unwrap_or(20),
+                             args.arg_width.unwrap_or(8));
+
+    if args.arg_stars.len() == 0 {
         room.add_random_star();
-        room.draw();
-    // if we were given appropriate arguments
-    } else if args.len()-1 >= 4 && (args.len()-1) % 2 == 0 {
-        let mut room = Room::new(args[1].parse::<u8>().unwrap(),
-                                 args[2].parse::<u8>().unwrap());
-        for i in 3..args.len() {
-            if i % 2 == 0 {
-                continue;
-            }
-            room.add_star(Point{x: args[i].parse::<u8>().unwrap(),
-                                y: args[i+1].parse::<u8>().unwrap()})
-                .unwrap();
-        }
-        room.draw();
+    } else if args.arg_stars.len() % 2 == 1 {
+        panic!("Must provide an even number of star coords!");
     } else {
-        println!("Invalid arguments, use no args or <l> <w> <starx> <stary>");
+        // Make sure we have an even number of values
+        let mut i = 0;
+        while i < args.arg_stars.len() {
+            room.add_star(Point{x: args.arg_stars[i],
+                                y: args.arg_stars[i+1]});
+            i += 2;
+        }
     }
+
+    room.draw();
 }
