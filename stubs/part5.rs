@@ -1,21 +1,10 @@
-// Part 6: Files, traits and serialisation
+// Part 5: argument parsing and error handling
 
-// add functionality for ./starroom --file <json_file>
-
-// for those who finish early, some further ideas:
-
-// - support multiple files
-// - load a JSON file over HTTP
-// - if any parsing fails, replace with a random value
+// add functionality for ./starroom <length> <width> (<star_x> <star_y> ...)
 
 extern crate rand;
 extern crate docopt;
 extern crate rustc_serialize;
-
-use std::fs::File;
-use std::io::prelude::*;
-
-use rustc_serialize::json;
 
 use docopt::Docopt;
 
@@ -24,28 +13,23 @@ The Star Room!
 
 Usage:
     starroom [<length> <width> <stars>...]
-    starroom --file <json_file>
 
 Options:
     -h --help             Show this screen.
-    --file <json_file>    JSON file with star data
 ";
 
 #[derive(Debug, RustcDecodable)]
 struct Args {
     arg_length: Option<u8>,
     arg_width: Option<u8>,
-    arg_stars: Vec<u8>,
-    flag_file: Option<String>
+    arg_stars: Vec<u8>
 }
 
-#[derive(RustcDecodable)]
 struct Point {
     x: u8,
     y: u8
 }
 
-#[derive(RustcDecodable)]
 struct Room {
     length: u8,
     width: u8,
@@ -133,32 +117,5 @@ fn main() {
     println!("Welcome to the star room");
     println!("Debug: {:?}", args);
 
-    if args.flag_file.is_some() {
-        let mut file = File::open(args.flag_file.unwrap()).unwrap();
-        let mut string = String::new();
-        file.read_to_string(&mut string).unwrap();
-
-        let room: Room = json::decode(&string).unwrap();
-        room.draw();
-        return;
-    }
-
-    let mut room = Room::new(args.arg_length.unwrap_or(20),
-                             args.arg_width.unwrap_or(8));
-
-    if args.arg_stars.len() == 0 {
-        room.add_random_star();
-    } else if args.arg_stars.len() % 2 == 1 {
-        panic!("Must provide an even number of star coords!");
-    } else {
-        // Make sure we have an even number of values
-        let mut i = 0;
-        while i < args.arg_stars.len() {
-            room.add_star(Point{x: args.arg_stars[i],
-                                y: args.arg_stars[i+1]});
-            i += 2;
-        }
-    }
-
-    room.draw();
+    // FILL THIS IN
 }

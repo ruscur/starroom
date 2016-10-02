@@ -134,13 +134,7 @@ fn main() {
     println!("Debug: {:?}", args);
 
     if args.flag_file.is_some() {
-        let mut file = File::open(args.flag_file.unwrap()).unwrap();
-        let mut string = String::new();
-        file.read_to_string(&mut string).unwrap();
-
-        let room: Room = json::decode(&string).unwrap();
-        room.draw();
-        return;
+        // FILL THIS IN
     }
 
     let mut room = Room::new(args.arg_length.unwrap_or(20),
